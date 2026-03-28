@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/ResilienceToolkit.Retry/ResilienceToolkit.Retry.csproj" />
+  <Project Path="samples/RetryDemo/RetryDemo.csproj" />
+</Solution>
