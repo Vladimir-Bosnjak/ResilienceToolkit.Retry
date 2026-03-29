@@ -20,11 +20,23 @@ internal class Program
         RetryDelayStrategy exponentialBackoff = static (attempt, _) =>
             TimeSpan.FromSeconds(Math.Min(Math.Pow(2, attempt - 1), 8));
 
-        Console.WriteLine("Starting operation with exponential backoff...");
+        // Testing a realistic scenario where we have a flaky network call that fails a few times before succeeding.
+        //(remove comment) await UnstableNetworkTest(cts, exponentialBackoff);
 
+        // Testing a simple scenario where we just want to retry a no-op operation a few times with a fixed delay.
+        TimeSpan delay = TimeSpan.FromMilliseconds(500);
+        await RetryPolicy.RetryAsync(LightWeightDemo, MaxAttempts, delay, cts.Token);
+
+       
+    }
+
+    private static async Task UnstableNetworkTest(CancellationTokenSource cts, RetryDelayStrategy exponentialBackoff)
+    {
+        Console.WriteLine("Starting operation with exponential backoff...");
         try
         {
-            string result = await RetryPolicy.RetryOnExceptionAsync<string, HttpRequestException>(operation: () => UnstableNetworkCallAsync(cts.Token),
+            string result = await RetryPolicy.RetryOnExceptionAsync<string, HttpRequestException>(
+                operation: () => UnstableNetworkCallAsync(cts.Token),
                 retries: MaxAttempts,
                 delayStrategy: exponentialBackoff,
                 cancellationToken: cts.Token,
@@ -35,8 +47,7 @@ internal class Program
                     if (attempt < MaxAttempts)
                     {
                         TimeSpan nextDelay = exponentialBackoff(attempt, ex);
-                        Console.WriteLine(
-                            $"   -> waiting {nextDelay.TotalSeconds:N0} second(s) before retrying...");
+                        Console.WriteLine($"   -> waiting {nextDelay.TotalSeconds:N0} second(s) before retrying...");
                     }
                 });
 
@@ -76,5 +87,10 @@ internal class Program
         }
 
         return "Recovered response payload.";
+    }
+
+    private static async Task LightWeightDemo()
+    {
+        await Console.Out.WriteLineAsync("Doing nothing...");
     }
 }
